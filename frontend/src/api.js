@@ -1,9 +1,18 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
+// Common fetch options for all requests
+const fetchOptions = {
+  mode: 'cors',
+  credentials: 'include',
+  headers: {
+    'Content-Type': 'application/json',
+  }
+};
+
 export async function login(phone) {
   const r = await fetch(`${API_URL}/login`, {
+    ...fetchOptions,
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ phone }),
   });
   if (!r.ok) throw new Error('Login failed');
@@ -18,9 +27,10 @@ export async function products() {
 
 export async function agentChat(token, text) {
   const r = await fetch(`${API_URL}/agent/chat`, {
+    ...fetchOptions,
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      ...fetchOptions.headers,
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({ token, message: text }),
