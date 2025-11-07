@@ -1,60 +1,36 @@
-import React, {useState, useEffect} from 'react'
-import { login, products, agentChat, getUserTransactions, getUserActivities, getBalance } from './api'
-import './App.css'
+import React, { useState, useEffect } from 'react';
+import { products, agentChat, getUserTransactions, getUserActivities, getBalance } from './api';
+import Login from './components/Login';
+import './App.css';
 
-function Login({onLogin}) {
-  const [phone, setPhone] = useState('')
-  const [error, setError] = useState('')
-
-  const handleLogin = async () => {
-    try {
-      const r = await login(phone)
-      if (r && r.token) {
-        onLogin(r)
-      } else {
-        setError('Invalid phone number')
-      }
-    } catch (err) {
-      setError(err.message)
-    }
-  }
-
-  return (
-    <div className="login-container card">
-      <h3>Welcome to AI Shopping Assistant</h3>
-      <p>Enter your phone number to continue</p>
-      <p className="help-text">Try: +10000000001 to +10000000010</p>
-      <div className="input-group">
-        <input 
-          value={phone} 
-          onChange={e => setPhone(e.target.value)}
-          placeholder="+10000000001"
-        />
-        <button onClick={handleLogin}>Login</button>
-      </div>
-      {error && <div className="error">{error}</div>}
-    </div>
-  )
-}
-
-function Shop({token}) {
-  const [items, setItems] = useState([])
-  const [loading, setLoading] = useState(true)
+function Shop({ token }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    products()
-      .then(setItems)
-      .finally(() => setLoading(false))
-  }, [])
+    products(token)
+      .then(data => {
+        setItems(data);
+        setError(null);
+      })
+      .catch(err => {
+        console.error('Failed to load products:', err);
+        setError('Failed to load products');
+      })
+      .finally(() => setLoading(false));
+  }, [token]);
 
+  if (error) return <div className="error card">{error}</div>;
+  
   return (
     <div className="card">
       <h3>Available Products</h3>
       {loading ? (
-        <p>Loading products...</p>
+        <div className="loading">Loading products...</div>
       ) : (
         <ul className="product-list">
-          {items.map(p => (
+          {items.map((p) => (
             <li key={p.id} className="product-item">
               <span>{p.title}</span>
               <span className="price">${p.price.toFixed(2)}</span>
@@ -63,36 +39,36 @@ function Shop({token}) {
         </ul>
       )}
     </div>
-  )
+  );
 }
 
-function Chat({token, onReply}) {
-  const [msg, setMsg] = useState('')
-  const [log, setLog] = useState([])
-  const [loading, setLoading] = useState(false)
+function Chat({ token, onReply }) {
+  const [msg, setMsg] = useState('');
+  const [log, setLog] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   async function send() {
-    if (!msg.trim()) return
-    setLoading(true)
+    if (!msg.trim()) return;
+    setLoading(true);
     try {
-      const r = await agentChat(token, msg)
-      setLog(l => [...l, {in: msg, out: r}])
-      setMsg('')
+      const r = await agentChat(msg, token);
+      setLog((l) => [...l, { in: msg, out: r }]);
+      setMsg('');
       if (r.ok && r.order) {
-        onReply && onReply(r)
+        onReply && onReply(r);
       }
     } catch (err) {
-      setLog(l => [...l, {in: msg, error: err.message}])
+      setLog((l) => [...l, { in: msg, error: err.message }]);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !loading) {
-      send()
+      send();
     }
-  }
+  };
 
   return (
     <div className="card chat-container">
@@ -123,7 +99,7 @@ function Chat({token, onReply}) {
       <div className="input-group">
         <input
           value={msg}
-          onChange={e => setMsg(e.target.value)}
+          onChange={(e) => setMsg(e.target.value)}
           onKeyPress={handleKeyPress}
           placeholder="Try: buy me a wireless mouse"
           disabled={loading}
@@ -133,26 +109,35 @@ function Chat({token, onReply}) {
         </button>
       </div>
     </div>
-  )
+  );
 }
 
-function Transactions({userId}) {
-  const [transactions, setTransactions] = useState([])
-  const [loading, setLoading] = useState(true)
+function Transactions({ userId, token }) {
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    getUserTransactions(userId)
-      .then(setTransactions)
-      .finally(() => setLoading(false))
-  }, [userId])
+    getUserTransactions(userId, token)
+      .then(data => {
+        setTransactions(data);
+        setError(null);
+      })
+      .catch(err => {
+        console.error('Failed to load transactions:', err);
+        setError('Failed to load transactions');
+      })
+      .finally(() => setLoading(false));
+  }, [userId]);
 
-  if (loading) return <div className="loading">Loading transactions...</div>
+  if (error) return <div className="error card">{error}</div>;
+  if (loading) return <div className="loading">Loading transactions...</div>;
 
   return (
     <div className="card">
       <h3>Recent Transactions</h3>
       <ul className="transaction-list">
-        {transactions.map(tx => (
+        {transactions.map((tx) => (
           <li key={tx.id} className="transaction-item">
             {tx.from === userId ? (
               <div className="transaction-amount sent">
@@ -170,113 +155,238 @@ function Transactions({userId}) {
         ))}
       </ul>
     </div>
-  )
+  );
 }
 
-function Activities({userId}) {
-  const [activities, setActivities] = useState([])
-  const [loading, setLoading] = useState(true)
+function Activities({ userId, token }) {
+  const [activities, setActivities] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    getUserActivities(userId)
-      .then(setActivities)
-      .finally(() => setLoading(false))
-  }, [userId])
+    getUserActivities(userId, token)
+      .then(data => {
+        setActivities(data);
+        setError(null);
+      })
+      .catch(err => {
+        console.error('Failed to load activities:', err);
+        setError('Failed to load activities');
+      })
+      .finally(() => setLoading(false));
+  }, [userId, token]);
 
-  if (loading) return <div className="loading">Loading activities...</div>
+  const getActivityMessage = (activity) => {
+    switch (activity.type) {
+      case 'transfer_sent':
+        return `Sent $${activity.amount.toFixed(2)} to ${activity.to_user}`;
+      case 'transfer_received':
+        return `Received $${activity.amount.toFixed(2)} from ${activity.from_user}`;
+      case 'purchase':
+        if (activity.products && activity.products.length > 0) {
+          return `Purchased ${activity.products.join(', ')} for $${activity.total.toFixed(2)}`;
+        }
+        return `Made a purchase for $${activity.total.toFixed(2)}`;
+      case 'login':
+        return 'Logged in to account';
+      default:
+        return activity.type.charAt(0).toUpperCase() + activity.type.slice(1);
+    }
+  };
+
+  if (error) return <div className="error card">{error}</div>;
+  if (loading) return <div className="loading">Loading activities...</div>;
 
   return (
     <div className="card">
       <h3>Activity Log</h3>
       <ul className="activity-list">
-        {activities.map(activity => (
-          <li key={activity.id} className="activity-item">
-            {activity.type === 'transfer_sent' && (
-              <div>Sent ${activity.amount.toFixed(2)} to {activity.to_user}</div>
-            )}
-            {activity.type === 'transfer_received' && (
-              <div>Received ${activity.amount.toFixed(2)} from {activity.from_user}</div>
-            )}
-            {activity.type === 'purchase' && (
-              <div>Purchased {activity.product_name} for ${activity.amount.toFixed(2)}</div>
-            )}
-            <div className="activity-timestamp">{new Date(activity.timestamp).toLocaleString()}</div>
-          </li>
-        ))}
+        {activities.length === 0 ? (
+          <li className="activity-item">No activities found</li>
+        ) : (
+          activities.map((activity) => (
+            <li key={activity.id} className="activity-item">
+              <div>{getActivityMessage(activity)}</div>
+              <div className="activity-timestamp">
+                {new Date(activity.timestamp * 1000).toLocaleString()}
+              </div>
+            </li>
+          ))
+        )}
       </ul>
     </div>
-  )
+  );
 }
 
 export default function App() {
-  const [session, setSession] = useState(null)
-  const [orderNotification, setOrderNotification] = useState(null)
-  const [activeTab, setActiveTab] = useState('shop')
-  const [balance, setBalance] = useState(null)
-
+  const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
+  const [session, setSession] = useState(null);
+  
+  // Initialize session on component mount
   useEffect(() => {
-    if (session) {
-      getBalance(session.user.id).then(data => setBalance(data.balance))
+    try {
+      const saved = localStorage.getItem('session');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.token && parsed.user && parsed.user.id) {
+          setSession(parsed);
+        } else {
+          console.warn('Invalid session data found');
+          localStorage.removeItem('session');
+        }
+      }
+    } catch (err) {
+      console.error('Failed to parse session:', err);
+      localStorage.removeItem('session');
+    } finally {
+      setInitialized(true);
     }
-  }, [session])
+  }, []);
+  const [orderNotification, setOrderNotification] = useState(null);
+  const [activeTab, setActiveTab] = useState('shop');
+  const [balance, setBalance] = useState(null);
+  const [error, setError] = useState(null);
+
+  // Handle storage events and session updates
+  useEffect(() => {
+    const handleStorage = () => {
+      const saved = localStorage.getItem('session');
+      try {
+        const parsed = saved ? JSON.parse(saved) : null;
+        if (!parsed || !parsed.token || !parsed.user || !parsed.user.id) {
+          setSession(null);
+          setBalance(null);
+        } else if (JSON.stringify(parsed) !== JSON.stringify(session)) {
+          setSession(parsed);
+        }
+      } catch (err) {
+        console.error('Failed to parse session from storage:', err);
+        setSession(null);
+        setBalance(null);
+      }
+    };
+
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, [session]);
+
+  // Update localStorage and fetch balance when session changes
+  useEffect(() => {
+    if (!initialized) {
+      return; // Wait for initialization
+    }
+
+    if (session?.user?.id && session?.token) {
+      localStorage.setItem('session', JSON.stringify(session));
+      
+      setLoading(true);
+      getBalance(session.user.id, session.token)
+        .then((data) => {
+          setBalance(data.balance);
+          setError(null);
+        })
+        .catch((err) => {
+          console.error('Failed to load balance:', err);
+          if (err.message.includes('Session expired') || err.message.includes('Please log in')) {
+            localStorage.removeItem('session');
+            setSession(null);
+            setBalance(null);
+          } else {
+            setError('Failed to load user data');
+          }
+        })
+        .finally(() => setLoading(false));
+    } else {
+      localStorage.removeItem('session');
+      setLoading(false);
+    }
+  }, [session, initialized]);
 
   const handleOrderComplete = (r) => {
     if (r && r.order) {
       setOrderNotification({
         id: r.order.id,
-        title: r.reply
-      })
-      setTimeout(() => setOrderNotification(null), 5000)
+        title: r.reply,
+      });
+      setTimeout(() => setOrderNotification(null), 5000);
       // Refresh balance
-      getBalance(session.user.id).then(data => setBalance(data.balance))
+      getBalance(session.user.id, session.token)
+        .then((data) => {
+          setBalance(data.balance);
+          setError(null);
+        })
+        .catch((err) => {
+          console.error('Failed to refresh balance:', err);
+        });
     }
-  }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('session');
+    setSession(null);
+    setBalance(null);
+    setError(null);
+    setActiveTab('shop');
+  };
 
   return (
     <div className="container">
       <div className="header">
         <h1>AI Shopping Assistant</h1>
       </div>
-      
-      {!session && <Login onLogin={(r) => setSession(r)} />}
-      
-      {session && (
+
+      {loading ? (
+        <div className="loading card">Loading...</div>
+      ) : error ? (
+        <div className="error card">
+          {error}
+          <button onClick={handleLogout} style={{ marginTop: '1rem' }}>
+            Logout
+          </button>
+        </div>
+      ) : !session ? (
+        <Login onLogin={(r) => setSession(r)} />
+      ) : (
         <>
           <div className="user-info">
             <div>
               Welcome back, <strong>{session.user.name}</strong>
             </div>
-            <div className="balance">
-              Balance: ${(balance ?? session.user.balance).toFixed(2)}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div className="balance">
+                Balance: ${(balance ?? session.user.balance).toFixed(2)}
+              </div>
+              <button onClick={handleLogout} className="secondary">
+                Logout
+              </button>
             </div>
           </div>
 
           {orderNotification && (
-            <div className="order-success">
-              {orderNotification.title}
-            </div>
+            <div className="order-success">{orderNotification.title}</div>
           )}
 
           <div className="tabs">
-            <button 
+            <button
               className={`tab ${activeTab === 'shop' ? 'active' : ''}`}
               onClick={() => setActiveTab('shop')}
             >
               Shop
             </button>
-            <button 
+            <button
               className={`tab ${activeTab === 'chat' ? 'active' : ''}`}
               onClick={() => setActiveTab('chat')}
             >
               Chat Assistant
             </button>
-            <button 
+            <button
               className={`tab ${activeTab === 'transactions' ? 'active' : ''}`}
               onClick={() => setActiveTab('transactions')}
             >
               Transactions
             </button>
-            <button 
+            <button
               className={`tab ${activeTab === 'activity' ? 'active' : ''}`}
               onClick={() => setActiveTab('activity')}
             >
@@ -284,35 +394,35 @@ export default function App() {
             </button>
           </div>
 
-          <div className={`main-content ${!activeTab.includes('shop') ? 'no-sidebar' : ''}`}>
-            {activeTab === 'shop' && (
-              <div className="sidebar">
-                <Shop token={session.token} />
+          <div className={`main-content ${activeTab !== 'shop' ? 'no-sidebar' : ''}`}>
+            {activeTab === 'shop' && session?.token && (
+              <>
+                <div className="sidebar">
+                  <Shop token={session.token} />
+                </div>
+                <div className="content">
+                  <Chat token={session.token} onReply={handleOrderComplete} />
+                </div>
+              </>
+            )}
+            {activeTab === 'chat' && (
+              <div className="content">
+                <Chat token={session.token} onReply={handleOrderComplete} />
               </div>
             )}
-            <div className="content">
-              {activeTab === 'shop' && (
-                <Chat 
-                  token={session.token} 
-                  onReply={handleOrderComplete}
-                />
-              )}
-              {activeTab === 'chat' && (
-                <Chat 
-                  token={session.token} 
-                  onReply={handleOrderComplete}
-                />
-              )}
-              {activeTab === 'transactions' && (
-                <Transactions userId={session.user.id} />
-              )}
-              {activeTab === 'activity' && (
-                <Activities userId={session.user.id} />
-              )}
-            </div>
+            {activeTab === 'transactions' && (
+              <div className="content">
+                <Transactions userId={session.user.id} token={session.token} />
+              </div>
+            )}
+            {activeTab === 'activity' && (
+              <div className="content">
+                <Activities userId={session.user.id} token={session.token} />
+              </div>
+            )}
           </div>
         </>
       )}
     </div>
-  )
+  );
 }

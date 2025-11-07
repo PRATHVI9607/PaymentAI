@@ -2,10 +2,14 @@ from .db import db
 from uuid import uuid4
 import time
 from .logger import log_info, log_error
+from .speech import voice
 
 def get_balance(user_id: str):
-    u = db.users.get(user_id)
-    balance = u and u["balance"] or 0.0
+    user = db.users.get(user_id)
+    if not user:
+        return 0.0
+    account = db.bank_accounts.get(user["account_id"])
+    balance = account["balance"] if account else 0.0
     log_info(f"Balance check for user {user_id}: ${balance:.2f}")
     return balance
 
@@ -20,18 +24,25 @@ def transfer(from_id: str, to_id: str, amount: float, meta: dict = None):
     if not recipient:
         log_error(f"Transfer failed: Recipient {to_id} not found")
         return {"ok": False, "reason": "to user not found"}
-    if sender["balance"] < amount:
-        log_error(f"Transfer failed: Insufficient funds (${sender['balance']:.2f} < ${amount:.2f})")
+    sender_account = db.bank_accounts.get(sender["account_id"])
+    recipient_account = db.bank_accounts.get(recipient["account_id"])
+    
+    if not sender_account or not recipient_account:
+        log_error("Transfer failed: Missing bank account")
+        return {"ok": False, "reason": "bank account not found"}
+    
+    if sender_account["balance"] < amount:
+        log_error(f"Transfer failed: Insufficient funds (${sender_account['balance']:.2f} < ${amount:.2f})")
         return {"ok": False, "reason": "insufficient funds"}
     
     # Execute transfer
     log_info(f"Initiating transfer: ${amount:.2f} from {sender['name']} to {recipient['name']}")
     
-    db.users[from_id]["balance"] -= amount
-    db.users[to_id]["balance"] += amount
+    db.bank_accounts[sender["account_id"]]["balance"] -= amount
+    db.bank_accounts[recipient["account_id"]]["balance"] += amount
     
     log_info(f"Transfer complete: ${amount:.2f}")
-    log_info(f"New balances - {sender['name']}: ${db.users[from_id]['balance']:.2f}, {recipient['name']}: ${db.users[to_id]['balance']:.2f}")
+    log_info(f"New balances - {sender['name']}: ${sender_account['balance']:.2f}, {recipient['name']}: ${recipient_account['balance']:.2f}")
     
     # Create transaction record
     tx = {
@@ -57,6 +68,11 @@ def transfer(from_id: str, to_id: str, amount: float, meta: dict = None):
         "amount": amount,
         "from_user": db.users[from_id]["name"],
         "transaction_id": tx["id"]
+    })
+
+    # Voice notifications
+    voice.speak_transaction(amount, "transfer_sent", {
+        "recipient_name": recipient["name"]
     })
     
     return {"ok": True, "tx": tx}

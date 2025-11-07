@@ -1,0 +1,186 @@
+/* src/styles.css */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --primary-color: #6366f1; /* A soft indigo accent */
+  --primary-dark: #4f46e5;
+  --secondary-color: #e0e7ff; /* Light background for elements */
+  --background-light: #f9fafb; /* Very light grey background */
+  --background-dark: #ffffff; /* White for main content areas */
+  --text-color-dark: #1f2937; /* Dark grey for main text */
+  --text-color-medium: #4b5563; /* Medium grey for secondary text */
+  --text-color-light: #6b7280; /* Light grey for hints/placeholders */
+  --border-color: #d1d5db; /* Light grey for borders */
+  --success-color: #10b981; /* Green for success */
+  --error-color: #ef4444; /* Red for errors */
+  --shadow-light: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --shadow-medium: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--background-light);
+  color: var(--text-color-dark);
+  line-height: 1.6;
+}
+
+#root {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.app-container {
+  background-color: var(--background-dark);
+  border-radius: 12px;
+  box-shadow: var(--shadow-medium);
+  width: 100%;
+  max-width: 700px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.app-header {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--primary-dark);
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.logout-button {
+  background-color: var(--secondary-color);
+  color: var(--primary-color);
+  border: none;
+  padding: 8px 15px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.logout-button:hover {
+  background-color: #c7d2fe; /* Lighter secondary */
+}
+
+.auth-container, .chat-interface {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.auth-container h2, .chat-interface h3 {
+  color: var(--primary-color);
+  margin-top: 0;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+input[type="text"] {
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 1rem;
+  width: calc(100% - 24px); /* Account for padding */
+}
+
+button {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+button:hover:not(:disabled) {
+  background-color: var(--primary-dark);
+}
+
+button:disabled {
+  background-color: #a7a7a7;
+  cursor: not-allowed;
+}
+
+.error-message {
+  color: var(--error-color);
+  font-size: 0.9rem;
+  margin-top: 5px;
+}
+
+.hint-text {
+  color: var(--text-color-light);
+  font-size: 0.85rem;
+}
+
+.chat-messages {
+  flex-grow: 1;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px;
+  background-color: var(--background-light);
+  min-height: 300px;
+  max-height: 500px; /* Limit chat height */
+}
+
+.chat-message {
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.chat-message.you {
+  background-color: var(--secondary-color);
+  align-self: flex-end;
+  text-align: right;
+  margin-left: 20%;
+}
+
+.chat-message.ai {
+  background-color: #f0f4f8; /* A very light grey-blue */
+  align-self: flex-start;
+  margin-right: 20%;
+}
+
+.chat-message strong {
+  color: var(--primary-color);
+}
+
+.chat-message.you strong {
+  color: var(--text-color-dark); /* Make "You" sender less prominent */
+}
+
+.chat-input-area {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.chat-input-area input {
+  flex-grow: 1;
+}
+
+.chat-input-area button {
+  flex-shrink: 0;
+}

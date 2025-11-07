@@ -3,3 +3,4 @@ uvicorn>=0.23.0
 cryptography==41.0.3
 pydantic>=2.0.0
 typing-extensions>=4.8.0
+python-multipart>=0.0.6
