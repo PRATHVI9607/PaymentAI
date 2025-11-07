@@ -1,16 +1,16 @@
-# PaymentAI: AI Shopping Assistant
+# PayPilot: AI Payment Assistant
 
-A conversational AI-powered shopping assistant that allows users to find products, manage their balance, and make secure purchases using natural language commands.
+A conversational AI-powered payment assistant that allows users to manage their balance, check account activity, and make secure money transfers using natural language commands.
 
 ---
 
 ## 🚀 Project Overview
 
-PaymentAI is a full-stack web application demonstrating a conversational user interface (CUI) for e-commerce. It features a React frontend and a FastAPI backend. The core of the project is an "agent" that interprets user requests, interacts with a simulated database, and executes financial transactions through a secure, RSA-encrypted payment gateway.
+PayPilot is a full-stack web application demonstrating a conversational user interface (CUI) for financial management. It features a React frontend and a FastAPI backend. The core of the project is an "agent" that interprets user requests, interacts with a simulated database, and executes financial transactions through a secure, RSA-encrypted payment gateway.
 
 ## ✨ Key Features
 
--   **Conversational Interface:** Interact with the shopping assistant using natural language (e.g., "buy me a wireless mouse for under $50").
+-   **Conversational Interface:** Interact with the payment assistant using natural language (e.g., "send $50 to User2").
 -   **AI-Powered Agent:** Parses user intent to handle actions like buying, transferring money, and checking balances.
 -   **Secure Transaction Simulation:** All payment payloads are encrypted using RSA public-key cryptography before being sent to the payment gateway.
 -   **Stateless Authentication:** Uses session tokens for secure communication between the frontend and backend.
@@ -106,11 +106,10 @@ The frontend will open in your browser, typically at `http://localhost:5173`.
 1.  Open the frontend URL in your browser.
 2.  Log in using one of the demo phone numbers: **`+10000000001`** to **`+10000000010`**.
 3.  Once logged in, use the chat interface to interact with the assistant. Try these commands:
-    *   `check balance`
-    *   `buy me a wireless mouse`
-    *   `I want headphones for under $100`
+    *   `what's my balance?`
     *   `send $10 to +10000000002`
     *   `send 25 dollars to User2`
+    *   `buy me a wireless mouse` (Shopping commands are also supported)
 4.  When prompted for confirmation, reply with `yes` or `confirm`.
 
 ## 🔌 API Endpoints
@@ -123,5 +122,3 @@ The backend provides an interactive API documentation (Swagger UI) at `http://lo
 -   `GET /transactions/{user_id}`: Get a user's transaction history.
 -   `GET /activities/{user_id}`: Get a user's activity log.
 -   `POST /gateway/pay`: (Internal) Process an RSA-encrypted payment payload.
-
-
