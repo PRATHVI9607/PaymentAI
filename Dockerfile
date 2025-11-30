@@ -3,12 +3,11 @@ FROM node:18-alpine AS frontend-build
 
 WORKDIR /frontend
 
-# Copy package files and install ALL dependencies (including dev)
+# Install dependencies and build
 COPY frontend/package.json frontend/package-lock.json* ./
-RUN npm install
+RUN npm ci --include=dev || npm install
 COPY frontend/ ./
-# Use the local vite from node_modules
-RUN ./node_modules/.bin/vite build
+RUN npm run build
 
 # Backend stage with Python
 FROM python:3.11-slim
