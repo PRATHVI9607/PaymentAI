@@ -13,7 +13,8 @@ export default function AIAssistant({ token, onReply }) {
       const r = await agentChat(msg, token);
       setLog((l) => [...l, { in: msg, out: r }]);
       setMsg('');
-      if (r.ok && r.order) {
+      // Trigger callback for any successful response (orders, transfers, etc.)
+      if (r.ok) {
         onReply && onReply(r);
       }
     } catch (err) {

@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { products, agentChat, getUserTransactions, getUserActivities, getBalance } from './api';
 import Login from './components/Login';
+import BanksMonitor from './components/BanksMonitor';
+import GatewayPipeline from './components/GatewayPipeline';
+import VoiceRecorder from './components/VoiceRecorder';
 import './App.css';
 
+// Shop Component
 function Shop({ token }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,44 +25,58 @@ function Shop({ token }) {
       .finally(() => setLoading(false));
   }, [token]);
 
-  if (error) return <div className="error card">{error}</div>;
+  if (error) return <div className="error">{error}</div>;
   
   return (
-    <div className="card">
-      <h3>Available Products</h3>
+    <div>
+      <div className="page-header">
+        <h2 className="page-title">🛍️ Product Store</h2>
+        <p className="page-subtitle">Browse and purchase from our collection</p>
+      </div>
+      
       {loading ? (
         <div className="loading">Loading products...</div>
       ) : (
-        <ul className="product-list">
+        <div className="product-grid">
           {items.map((p) => (
-            <li key={p.id} className="product-item">
-              <span>{p.title}</span>
-              <span className="price">${p.price.toFixed(2)}</span>
-            </li>
+            <div key={p.id} className="product-card">
+              <div className="product-image">📦</div>
+              <div className="product-title">{p.title}</div>
+              <div className="product-brand">by {p.brand_name || 'Unknown'}</div>
+              {p.rating && (
+                <div className="product-rating">⭐ {p.rating}/5.0</div>
+              )}
+              <div className="product-price">${p.price.toFixed(2)}</div>
+              {p.stock !== undefined && (
+                <div className="product-stock">{p.stock} in stock</div>
+              )}
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );
 }
 
+// Chat Component
 function Chat({ token, onReply }) {
   const [msg, setMsg] = useState('');
   const [log, setLog] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  async function send() {
-    if (!msg.trim()) return;
+  async function send(message = msg) {
+    if (!message.trim()) return;
     setLoading(true);
     try {
-      const r = await agentChat(msg, token);
-      setLog((l) => [...l, { in: msg, out: r }]);
+      const r = await agentChat(message, token);
+      setLog((l) => [...l, { in: message, out: r }]);
       setMsg('');
-      if (r.ok && r.order) {
+      // Trigger callback for any successful response (orders, transfers, etc.)
+      if (r.ok) {
         onReply && onReply(r);
       }
     } catch (err) {
-      setLog((l) => [...l, { in: msg, error: err.message }]);
+      setLog((l) => [...l, { in: message, error: err.message }]);
     } finally {
       setLoading(false);
     }
@@ -70,48 +88,77 @@ function Chat({ token, onReply }) {
     }
   };
 
+  const handleVoiceTranscript = (transcript) => {
+    setMsg(transcript);
+    // Automatically send the message
+    send(transcript);
+  };
+
   return (
-    <div className="card chat-container">
-      <h3>AI Shopping Assistant</h3>
-      <div className="chat-log">
-        {log.map((e, i) => (
-          <div key={i} className="message">
-            <div className="message-user">
-              <strong>You:</strong> {e.in}
-            </div>
-            <div className="message-agent">
-              {e.error ? (
-                <span className="error">{e.error}</span>
-              ) : (
-                <>
-                  <strong>Assistant:</strong>{' '}
-                  {e.out.ok ? (
-                    e.out.reply
-                  ) : (
-                    <span className="error">{e.out.reason}</span>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        ))}
+    <div>
+      <div className="page-header">
+        <h2 className="page-title">🤖 AI Assistant</h2>
+        <p className="page-subtitle">Chat with our intelligent shopping assistant</p>
       </div>
-      <div className="input-group">
-        <input
-          value={msg}
-          onChange={(e) => setMsg(e.target.value)}
-          onKeyPress={handleKeyPress}
-          placeholder="Try: buy me a wireless mouse"
-          disabled={loading}
-        />
-        <button onClick={send} disabled={loading}>
-          {loading ? 'Sending...' : 'Send'}
-        </button>
+      
+      <div className="chat-container">
+        <div className="messages">
+          {log.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-light)' }}>
+              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>💬</div>
+              <h4>Start a conversation</h4>
+              <p>Ask me to find products, make purchases, or check your balance</p>
+              <div style={{ marginTop: '1rem', fontSize: '0.9rem', color: 'var(--sky-blue)' }}>
+                <p>Try: "show me laptops" or "buy wireless mouse"</p>
+              </div>
+            </div>
+          ) : (
+            log.map((e, i) => (
+              <div key={i}>
+                <div className="message user">
+                  <div className="message-sender">You</div>
+                  <div className="message-content">{e.in}</div>
+                </div>
+                {e.error ? (
+                  <div className="message assistant">
+                    <div className="message-sender">Assistant</div>
+                    <div className="message-content" style={{ color: 'var(--danger)' }}>
+                      Error: {e.error}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="message assistant">
+                    <div className="message-sender">Assistant</div>
+                    <div className="message-content" style={{ color: e.out.ok === false ? 'var(--danger)' : 'inherit' }}>
+                      {e.out.reply || (e.out.ok === false ? `Error: ${e.out.reason || 'Unknown error'}` : JSON.stringify(e.out))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+        
+        <div className="chat-input-area">
+          <input
+            className="chat-input"
+            value={msg}
+            onChange={(e) => setMsg(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="Ask me anything..."
+            disabled={loading}
+          />
+          <VoiceRecorder onTranscript={handleVoiceTranscript} token={token} />
+          <button onClick={() => send()} disabled={loading} className="primary">
+            {loading ? '⏳' : '📤'} Send
+          </button>
+        </div>
       </div>
     </div>
   );
 }
 
+// Transactions Component
 function Transactions({ userId, token }) {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -130,34 +177,46 @@ function Transactions({ userId, token }) {
       .finally(() => setLoading(false));
   }, [userId]);
 
-  if (error) return <div className="error card">{error}</div>;
+  if (error) return <div className="error">{error}</div>;
   if (loading) return <div className="loading">Loading transactions...</div>;
 
   return (
-    <div className="card">
-      <h3>Recent Transactions</h3>
-      <ul className="transaction-list">
-        {transactions.map((tx) => (
-          <li key={tx.id} className="transaction-item">
-            {tx.from === userId ? (
-              <div className="transaction-amount sent">
-                Sent ${tx.amount.toFixed(2)} to {tx.to_user}
-              </div>
-            ) : (
-              <div className="transaction-amount received">
-                Received ${tx.amount.toFixed(2)} from {tx.from_user}
-              </div>
-            )}
-            <div className="activity-timestamp">
-              {new Date(tx.ts * 1000).toLocaleString()}
+    <div>
+      <div className="page-header">
+        <h2 className="page-title">💸 Transaction History</h2>
+        <p className="page-subtitle">View your recent transactions</p>
+      </div>
+      
+      <div className="card">
+        <div className="transaction-list">
+          {transactions.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>
+              No transactions yet
             </div>
-          </li>
-        ))}
-      </ul>
+          ) : (
+            transactions.map((tx) => (
+              <div key={tx.id} className="transaction-item">
+                <div className="transaction-details">
+                  <div className="transaction-type">
+                    {tx.from === userId ? `Sent to ${tx.to_user}` : `Received from ${tx.from_user}`}
+                  </div>
+                  <div className="transaction-date">
+                    {new Date(tx.ts * 1000).toLocaleString()}
+                  </div>
+                </div>
+                <div className={`transaction-amount ${tx.from === userId ? 'negative' : 'positive'}`}>
+                  {tx.from === userId ? '-' : '+'}${tx.amount.toFixed(2)}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
     </div>
   );
 }
 
+// Activities Component
 function Activities({ userId, token }) {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -194,35 +253,50 @@ function Activities({ userId, token }) {
     }
   };
 
-  if (error) return <div className="error card">{error}</div>;
+  if (error) return <div className="error">{error}</div>;
   if (loading) return <div className="loading">Loading activities...</div>;
 
   return (
-    <div className="card">
-      <h3>Activity Log</h3>
-      <ul className="activity-list">
-        {activities.length === 0 ? (
-          <li className="activity-item">No activities found</li>
-        ) : (
-          activities.map((activity) => (
-            <li key={activity.id} className="activity-item">
-              <div>{getActivityMessage(activity)}</div>
-              <div className="activity-timestamp">
-                {new Date(activity.timestamp * 1000).toLocaleString()}
+    <div>
+      <div className="page-header">
+        <h2 className="page-title">📊 Activity Log</h2>
+        <p className="page-subtitle">Track all account activities</p>
+      </div>
+      
+      <div className="card">
+        <div className="activity-list">
+          {activities.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>
+              No activities found
+            </div>
+          ) : (
+            activities.map((activity) => (
+              <div key={activity.id} className="activity-item">
+                <div className="activity-time">
+                  {new Date(activity.timestamp * 1000).toLocaleString()}
+                </div>
+                <div className="activity-description">
+                  {getActivityMessage(activity)}
+                </div>
               </div>
-            </li>
-          ))
-        )}
-      </ul>
+            ))
+          )}
+        </div>
+      </div>
     </div>
   );
 }
 
+// Main App Component
 export default function App() {
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
   const [session, setSession] = useState(null);
-  
+  const [activeView, setActiveView] = useState('store');
+  const [balance, setBalance] = useState(null);
+  const [error, setError] = useState(null);
+  const [orderNotification, setOrderNotification] = useState(null);
+
   // Initialize session on component mount
   useEffect(() => {
     try {
@@ -243,10 +317,6 @@ export default function App() {
       setInitialized(true);
     }
   }, []);
-  const [orderNotification, setOrderNotification] = useState(null);
-  const [activeTab, setActiveTab] = useState('shop');
-  const [balance, setBalance] = useState(null);
-  const [error, setError] = useState(null);
 
   // Handle storage events and session updates
   useEffect(() => {
@@ -273,9 +343,7 @@ export default function App() {
 
   // Update localStorage and fetch balance when session changes
   useEffect(() => {
-    if (!initialized) {
-      return; // Wait for initialization
-    }
+    if (!initialized) return;
 
     if (session?.user?.id && session?.token) {
       localStorage.setItem('session', JSON.stringify(session));
@@ -303,19 +371,32 @@ export default function App() {
     }
   }, [session, initialized]);
 
+  // Real-time balance polling every 2 seconds
+  useEffect(() => {
+    if (!session?.user?.id || !session?.token) return;
+
+    const intervalId = setInterval(() => {
+      getBalance(session.user.id, session.token)
+        .then((data) => setBalance(data.balance))
+        .catch((err) => console.error('Balance polling error:', err));
+    }, 2000);
+
+    return () => clearInterval(intervalId);
+  }, [session]);
+
   const handleOrderComplete = (r) => {
     if (r && r.order) {
       setOrderNotification({
         id: r.order.id,
         title: r.reply,
       });
-      setTimeout(() => setOrderNotification(null), 5000);
-      // Refresh balance
+      setTimeout(() => setOrderNotification(null), 3000);
+    }
+    
+    // Refresh balance immediately for any successful operation
+    if (r && r.ok && session?.user?.id && session?.token) {
       getBalance(session.user.id, session.token)
-        .then((data) => {
-          setBalance(data.balance);
-          setError(null);
-        })
+        .then((data) => setBalance(data.balance))
         .catch((err) => {
           console.error('Failed to refresh balance:', err);
         });
@@ -326,103 +407,103 @@ export default function App() {
     localStorage.removeItem('session');
     setSession(null);
     setBalance(null);
-    setError(null);
-    setActiveTab('shop');
   };
 
-  return (
-    <div className="container">
-      <div className="header">
-        <h1>AI Shopping Assistant</h1>
-      </div>
+  if (!session) {
+    return <Login onLogin={setSession} />;
+  }
 
-      {loading ? (
-        <div className="loading card">Loading...</div>
-      ) : error ? (
-        <div className="error card">
-          {error}
-          <button onClick={handleLogout} style={{ marginTop: '1rem' }}>
-            Logout
+  return (
+    <div className="app-container">
+      {/* Side Navigation */}
+      <nav className="sidebar-nav">
+        <div className="sidebar-header">
+          <h1>💳 PaymentAI</h1>
+          <div className="subtitle">Smart Shopping Platform</div>
+        </div>
+
+        <div className="sidebar-user">
+          <div className="user-name">{session.user.name}</div>
+          <div className="user-balance">
+            ${(balance ?? session.user.balance).toFixed(2)}
+          </div>
+        </div>
+
+        <div className="sidebar-menu">
+          <div
+            className={`menu-item ${activeView === 'store' ? 'active' : ''}`}
+            onClick={() => setActiveView('store')}
+          >
+            <span className="menu-item-icon">🛍️</span>
+            <span>Store</span>
+          </div>
+          <div
+            className={`menu-item ${activeView === 'chat' ? 'active' : ''}`}
+            onClick={() => setActiveView('chat')}
+          >
+            <span className="menu-item-icon">🤖</span>
+            <span>AI Assistant</span>
+          </div>
+          <div
+            className={`menu-item ${activeView === 'transactions' ? 'active' : ''}`}
+            onClick={() => setActiveView('transactions')}
+          >
+            <span className="menu-item-icon">💸</span>
+            <span>Transactions</span>
+          </div>
+          <div
+            className={`menu-item ${activeView === 'activity' ? 'active' : ''}`}
+            onClick={() => setActiveView('activity')}
+          >
+            <span className="menu-item-icon">📊</span>
+            <span>Activity</span>
+          </div>
+          <div
+            className={`menu-item ${activeView === 'gateway' ? 'active' : ''}`}
+            onClick={() => setActiveView('gateway')}
+          >
+            <span className="menu-item-icon">🔐</span>
+            <span>Gateway</span>
+          </div>
+        </div>
+
+        <div className="sidebar-footer">
+          <button onClick={handleLogout} className="logout-btn">
+            🚪 Logout
           </button>
         </div>
-      ) : !session ? (
-        <Login onLogin={(r) => setSession(r)} />
-      ) : (
-        <>
-          <div className="user-info">
-            <div>
-              Welcome back, <strong>{session.user.name}</strong>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <div className="balance">
-                Balance: ${(balance ?? session.user.balance).toFixed(2)}
+      </nav>
+
+      {/* Main Content */}
+      <main className="main-content">
+        {loading && !initialized ? (
+          <div className="loading">Initializing...</div>
+        ) : error ? (
+          <div className="error">{error}</div>
+        ) : (
+          <>
+            {orderNotification && (
+              <div className="success-message">
+                ✅ {orderNotification.title}
               </div>
-              <button onClick={handleLogout} className="secondary">
-                Logout
-              </button>
-            </div>
-          </div>
+            )}
 
-          {orderNotification && (
-            <div className="order-success">{orderNotification.title}</div>
-          )}
-
-          <div className="tabs">
-            <button
-              className={`tab ${activeTab === 'shop' ? 'active' : ''}`}
-              onClick={() => setActiveTab('shop')}
-            >
-              Shop
-            </button>
-            <button
-              className={`tab ${activeTab === 'chat' ? 'active' : ''}`}
-              onClick={() => setActiveTab('chat')}
-            >
-              Chat Assistant
-            </button>
-            <button
-              className={`tab ${activeTab === 'transactions' ? 'active' : ''}`}
-              onClick={() => setActiveTab('transactions')}
-            >
-              Transactions
-            </button>
-            <button
-              className={`tab ${activeTab === 'activity' ? 'active' : ''}`}
-              onClick={() => setActiveTab('activity')}
-            >
-              Activity
-            </button>
-          </div>
-
-          <div className={`main-content ${activeTab !== 'shop' ? 'no-sidebar' : ''}`}>
-            {activeTab === 'shop' && session?.token && (
+            {activeView === 'store' && <Shop token={session.token} />}
+            {activeView === 'chat' && <Chat token={session.token} onReply={handleOrderComplete} />}
+            {activeView === 'transactions' && <Transactions userId={session.user.id} token={session.token} />}
+            {activeView === 'activity' && <Activities userId={session.user.id} token={session.token} />}
+            {activeView === 'gateway' && (
               <>
-                <div className="sidebar">
-                  <Shop token={session.token} />
+                <div className="page-header">
+                  <h2 className="page-title">🔐 Payment Gateway</h2>
+                  <p className="page-subtitle">Monitor payment pipeline and transactions</p>
                 </div>
-                <div className="content">
-                  <Chat token={session.token} onReply={handleOrderComplete} />
-                </div>
+                <GatewayPipeline token={session.token} />
               </>
             )}
-            {activeTab === 'chat' && (
-              <div className="content">
-                <Chat token={session.token} onReply={handleOrderComplete} />
-              </div>
-            )}
-            {activeTab === 'transactions' && (
-              <div className="content">
-                <Transactions userId={session.user.id} token={session.token} />
-              </div>
-            )}
-            {activeTab === 'activity' && (
-              <div className="content">
-                <Activities userId={session.user.id} token={session.token} />
-              </div>
-            )}
-          </div>
-        </>
-      )}
+          </>
+        )}
+      </main>
     </div>
   );
 }

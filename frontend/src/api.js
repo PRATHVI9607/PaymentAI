@@ -1,4 +1,6 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+// For production, use same origin; for development, use env variable or localhost
+const API_URL = import.meta.env.VITE_API_URL || 
+  (import.meta.env.PROD ? window.location.origin : 'http://localhost:8000');
 
 // Common fetch options for all requests
 const fetchOptions = {
