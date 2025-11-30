@@ -7,7 +7,7 @@ WORKDIR /frontend
 COPY frontend/package.json frontend/package-lock.json* ./
 RUN npm install --legacy-peer-deps
 COPY frontend/ ./
-RUN npm run build
+RUN npx vite build
 
 # Backend stage with Python
 FROM python:3.11-slim
