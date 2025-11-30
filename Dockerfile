@@ -1,29 +1,32 @@
-# Multi-stage build: Frontend + Backend in one container
-FROM node:18-alpine AS frontend-build
-
-WORKDIR /frontend
-
-# Install dependencies and build
-COPY frontend/package.json frontend/package-lock.json* ./
-RUN npm ci --include=dev || npm install
-COPY frontend/ ./
-RUN npm run build
-
-# Backend stage with Python
+# Backend with Python - serve both frontend and backend
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install nginx for serving frontend
-RUN apt-get update && apt-get install -y nginx && rm -rf /var/lib/apt/lists/*
+# Install nginx and Node.js for serving
+RUN apt-get update && \
+    apt-get install -y nginx curl && \
+    curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/*
 
-# Copy backend
+# Copy and install backend
 COPY backend/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 COPY backend/ ./
 
-# Copy built frontend from previous stage
-COPY --from=frontend-build /frontend/dist /app/frontend/dist
+# Copy frontend source (no build needed for dev mode)
+COPY frontend/ ./frontend/
+
+# Install frontend dependencies and build with installed vite
+WORKDIR /app/frontend
+RUN npm install && npm run build
+
+WORKDIR /app
+
+# Copy built frontend to nginx location
+RUN mkdir -p /usr/share/nginx/html && \
+    cp -r /app/frontend/dist/* /usr/share/nginx/html/
 
 # Copy nginx config
 COPY nginx-combined.conf /etc/nginx/sites-available/default
