@@ -3,11 +3,12 @@ FROM node:18-alpine AS frontend-build
 
 WORKDIR /frontend
 
-# Copy package files and install dependencies
+# Copy package files and install ALL dependencies (including dev)
 COPY frontend/package.json frontend/package-lock.json* ./
-RUN npm install --legacy-peer-deps
+RUN npm install
 COPY frontend/ ./
-RUN npx vite build
+# Use the local vite from node_modules
+RUN ./node_modules/.bin/vite build
 
 # Backend stage with Python
 FROM python:3.11-slim
