@@ -3,9 +3,9 @@ FROM node:18-alpine AS frontend-build
 
 WORKDIR /frontend
 
-# Build frontend
-COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci
+# Copy package files and install dependencies
+COPY frontend/package.json frontend/package-lock.json* ./
+RUN npm install --legacy-peer-deps
 COPY frontend/ ./
 RUN npm run build
 
