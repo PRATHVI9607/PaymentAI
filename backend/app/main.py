@@ -342,3 +342,26 @@ async def voice_listen(request: Request):
             status_code=500,
             content={"detail": "Failed to process voice input"}
         )
+
+# Mount frontend static files (for production)
+frontend_dist = Path(__file__).parent.parent.parent / "frontend" / "dist"
+if frontend_dist.exists():
+    app.mount("/assets", StaticFiles(directory=str(frontend_dist / "assets")), name="assets")
+    
+    @app.get("/", response_class=FileResponse)
+    async def serve_frontend():
+        return FileResponse(str(frontend_dist / "index.html"))
+    
+    @app.get("/{full_path:path}", response_class=FileResponse)
+    async def serve_spa(full_path: str):
+        # Don't intercept API routes
+        if full_path.startswith(("docs", "openapi.json", "login", "products", "agent", "gateway", "balances", "transactions", "activities", "banks", "voice")):
+            raise HTTPException(status_code=404, detail="Not found")
+        
+        # Try to serve the file
+        file_path = frontend_dist / full_path
+        if file_path.is_file():
+            return FileResponse(str(file_path))
+        
+        # For all other routes, serve index.html (SPA routing)
+        return FileResponse(str(frontend_dist / "index.html"))
