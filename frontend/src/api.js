@@ -1,4 +1,4 @@
-// For production, use same origin; for development, use env variable or localhost
+// For production with combined container, API is on same domain; for dev use localhost
 const API_URL = import.meta.env.VITE_API_URL || 
   (import.meta.env.PROD ? window.location.origin : 'http://localhost:8000');
 
