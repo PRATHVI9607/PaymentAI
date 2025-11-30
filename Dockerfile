@@ -31,12 +31,12 @@ RUN mkdir -p /usr/share/nginx/html && \
 # Copy nginx config
 COPY nginx-combined.conf /etc/nginx/sites-available/default
 
-# Create startup script
+# Create startup script that uses Railway's PORT
 RUN echo '#!/bin/bash\n\
-nginx\n\
-uvicorn app.main:app --host 0.0.0.0 --port 8000' > /app/start.sh && \
+nginx -g "daemon off;" &\n\
+uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}' > /app/start.sh && \
 chmod +x /app/start.sh
 
-EXPOSE 80 8000
+EXPOSE 80
 
-CMD ["/app/start.sh"]
+CMD ["/bin/bash", "/app/start.sh"]
